@@ -52,3 +52,20 @@ export interface CalculationResult {
   estimatedEarnedIncomeTaxRate: number; // 대략적 근로소득 실효세율 (38~45% 누진)
   taxBurdenIncreaseEstimate: number; // 근로소득 전환에 따른 추가 세부담 추정액
 }
+
+export interface SavedCalculation {
+  id: string;
+  createdAt: string; // ISO string or timestamp string
+  title: string; // Display title, e.g. "김대표 (한화피플라이프 대전글로리사업단) - 3.0배"
+  executiveInfo: ExecutiveInfo;
+  servicePeriod: ServicePeriod;
+  salaryHistory: SalaryHistory;
+  articlesRegulation: ArticlesRegulation;
+  summary: {
+    serviceYearsDisplay: string;
+    companySeverancePay: number;
+    retirementIncomeApproved: number;
+    earnedIncomeConverted: number;
+    multiple: number;
+  };
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExecutiveInfo, ServicePeriod, SalaryHistory, ArticlesRegulation } from '../types';
 import { formatCurrency, formatKoreanWon } from '../utils/taxCalculator';
-import { User, Calendar, DollarSign, Scale, HelpCircle, Check, Sparkles } from 'lucide-react';
+import { User, Calendar, DollarSign, Scale, HelpCircle, Check } from 'lucide-react';
 
 interface ExecutiveFormProps {
   executiveInfo: ExecutiveInfo;
@@ -70,9 +70,6 @@ export const ExecutiveForm: React.FC<ExecutiveFormProps> = ({
     });
   };
 
-  // Quick preset for position
-  const positions = ['대표이사', '총괄사장', '전무이사', '상무이사', '사내이사', '감사'];
-
   // Quick preset for multiples
   const multiplePresets = [1.0, 2.0, 2.5, 3.0, 4.0];
 
@@ -114,9 +111,9 @@ export const ExecutiveForm: React.FC<ExecutiveFormProps> = ({
           </div>
         </div>
 
-        {/* Company name input & quick position chips */}
-        <div className="flex flex-col sm:flex-row gap-2 pt-0.5">
-          <div className="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/60 hover:border-amber-300 dark:hover:border-amber-600 focus-within:bg-amber-50 dark:focus-within:bg-amber-950/40 focus-within:border-amber-500 dark:focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-lg px-3 py-1.5 flex-1 flex items-center gap-1.5 transition-all">
+        {/* Company name input */}
+        <div className="pt-0.5">
+          <div className="bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/60 hover:border-amber-300 dark:hover:border-amber-600 focus-within:bg-amber-50 dark:focus-within:bg-amber-950/40 focus-within:border-amber-500 dark:focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-lg px-3 py-2 flex items-center gap-1.5 transition-all">
             <input
               type="text"
               value={executiveInfo.companyName}
@@ -124,7 +121,7 @@ export const ExecutiveForm: React.FC<ExecutiveFormProps> = ({
                 setExecutiveInfo((prev) => ({ ...prev, companyName: e.target.value }))
               }
               placeholder="회사명 (예: 한화피플라이프 대전글로리사업단)"
-              className="w-full bg-transparent text-xs text-slate-900 dark:text-amber-100 outline-none font-semibold placeholder:text-amber-800/40 dark:placeholder:text-amber-300/40"
+              className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-amber-100 outline-none font-semibold placeholder:text-amber-800/40 dark:placeholder:text-amber-300/40"
             />
             {executiveInfo.companyName !== '한화피플라이프 대전글로리사업단' && (
               <button
@@ -135,28 +132,12 @@ export const ExecutiveForm: React.FC<ExecutiveFormProps> = ({
                     companyName: '한화피플라이프 대전글로리사업단',
                   }))
                 }
-                className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 whitespace-nowrap px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800"
+                className="text-[10px] font-bold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-100 whitespace-nowrap px-2 py-1 rounded bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer"
                 title="한화피플라이프 대전글로리사업단 자동 입력"
               >
                 기본사업단
               </button>
             )}
-          </div>
-          <div className="flex items-center gap-1 flex-wrap">
-            {positions.map((pos) => (
-              <button
-                key={pos}
-                type="button"
-                onClick={() => setExecutiveInfo((prev) => ({ ...prev, position: pos }))}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                  executiveInfo.position === pos
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                {pos}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -371,7 +352,6 @@ export const ExecutiveForm: React.FC<ExecutiveFormProps> = ({
 
         {/* Multiple preset buttons */}
         <div className="flex items-center gap-1.5 pt-0.5">
-          <span className="text-xs text-slate-500 dark:text-slate-400 mr-1">배수 선택:</span>
           {multiplePresets.map((m) => (
             <button
               key={m}
