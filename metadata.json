@@ -1,0 +1,6 @@
+{
+  "name": "임원 퇴직금 계산기",
+  "description": "한화피플라이프 대전글로리사업단 임원 퇴직금 계산, 소득세법 제22조 한도 검토, 근로소득 과세 전환액 및 법인세 손금 판정 솔루션",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
