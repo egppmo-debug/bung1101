@@ -5,12 +5,16 @@ interface CompanyLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  onClick?: () => void;
+  title?: string;
 }
 
 export const CompanyLogo: React.FC<CompanyLogoProps> = ({
   className = '',
   size = 'md',
   showText = false,
+  onClick,
+  title,
 }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -23,7 +27,11 @@ export const CompanyLogo: React.FC<CompanyLogoProps> = ({
   const ringStroke = 'stroke-white';
 
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
+    <div
+      onClick={onClick}
+      title={title}
+      className={`flex items-center gap-2.5 ${onClick ? 'cursor-pointer hover:opacity-95 active:scale-95 transition-all' : ''} ${className}`}
+    >
       <div
         className={`${sizeClasses[size]} relative overflow-hidden flex-shrink-0 shadow-md bg-gradient-to-br from-[#7C3AED] via-[#6B21A8] to-[#4C1D95] flex items-center justify-center`}
       >

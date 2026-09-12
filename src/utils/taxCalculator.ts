@@ -204,3 +204,85 @@ export function calculateExecutiveSeverancePay(params: {
     taxBurdenIncreaseEstimate,
   };
 }
+
+/**
+ * 대한민국 법인세율 계산 함수 (지방소득세 10% 포함)
+ * 2023년 세법 개정 기준:
+ * - 2억원 이하: 9.0% (지방소득세 0.9% 가산시 9.9%)
+ * - 2억원 초과 ~ 200억원 이하: 19.0% (지방소득세 1.9% 가산시 20.9%)
+ * - 200억원 초과 ~ 3,000억원 이하: 21.0% (지방소득세 2.1% 가산시 23.1%)
+ */
+export function calculateCorporateTax(taxBase: number): {
+  taxBase: number;
+  nationalTax: number;
+  localTax: number;
+  totalTax: number;
+  effectiveRate: number;
+} {
+  const base = Math.max(0, Math.round(taxBase));
+  if (base === 0) {
+    return { taxBase: 0, nationalTax: 0, localTax: 0, totalTax: 0, effectiveRate: 0 };
+  }
+
+  let nationalTax = 0;
+  if (base <= 200000000) {
+    nationalTax = base * 0.09;
+  } else if (base <= 20000000000) {
+    nationalTax = 200000000 * 0.09 + (base - 200000000) * 0.19;
+  } else {
+    nationalTax =
+      200000000 * 0.09 +
+      (20000000000 - 200000000) * 0.19 +
+      (base - 20000000000) * 0.21;
+  }
+
+  nationalTax = Math.round(nationalTax);
+  const localTax = Math.round(nationalTax * 0.1);
+  const totalTax = nationalTax + localTax;
+  const effectiveRate = base > 0 ? (totalTax / base) * 100 : 0;
+
+  return { taxBase: base, nationalTax, localTax, totalTax, effectiveRate };
+}
+
+export interface CorporateTaxSavingsResult {
+  profitBefore: number;
+  profitAfter: number;
+  deductibleSeverance: number;
+  taxBaseReduction: number;
+  taxBefore: ReturnType<typeof calculateCorporateTax>;
+  taxAfter: ReturnType<typeof calculateCorporateTax>;
+  taxSaving: number;
+  effectiveSavingRate: number;
+}
+
+/**
+ * 퇴직금 손금산입에 따른 연간 영업이익 대비 법인세 절감액 추정
+ */
+export function calculateCorporateTaxSavings(
+  operatingProfit: number,
+  deductibleSeverance: number
+): CorporateTaxSavingsResult {
+  const profitBefore = Math.max(0, Math.round(operatingProfit));
+  const safeDeductible = Math.max(0, Math.round(deductibleSeverance));
+  const profitAfter = Math.max(0, profitBefore - safeDeductible);
+
+  const taxBefore = calculateCorporateTax(profitBefore);
+  const taxAfter = calculateCorporateTax(profitAfter);
+
+  const taxSaving = Math.max(0, taxBefore.totalTax - taxAfter.totalTax);
+  const taxBaseReduction = profitBefore - profitAfter;
+  const effectiveSavingRate =
+    taxBaseReduction > 0 ? (taxSaving / taxBaseReduction) * 100 : 0;
+
+  return {
+    profitBefore,
+    profitAfter,
+    deductibleSeverance: safeDeductible,
+    taxBaseReduction,
+    taxBefore,
+    taxAfter,
+    taxSaving,
+    effectiveSavingRate,
+  };
+}
+

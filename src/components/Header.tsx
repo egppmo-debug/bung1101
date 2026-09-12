@@ -1,5 +1,15 @@
 import React from 'react';
-import { FileSpreadsheet, Printer, BookOpen, ShieldCheck, Sparkles, FolderOpen, RotateCcw, Save } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  Printer,
+  BookOpen,
+  ShieldCheck,
+  Sparkles,
+  FolderOpen,
+  RotateCcw,
+  Save,
+  Radio,
+} from 'lucide-react';
 import { CompanyLogo } from './CompanyLogo';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -10,6 +20,11 @@ interface HeaderProps {
   onSave: () => void;
   onOpenSavedList?: () => void;
   savedCount?: number;
+  isLocked?: boolean;
+  isUnlocked?: boolean;
+  onOpenAdminModal?: () => void;
+  onManualLock?: () => void;
+  cloudSyncStatus?: 'connected' | 'connecting' | 'offline';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,16 +34,37 @@ export const Header: React.FC<HeaderProps> = ({
   onSave,
   onOpenSavedList,
   savedCount = 0,
+  isLocked = true,
+  isUnlocked = false,
+  onOpenAdminModal,
+  onManualLock,
+  cloudSyncStatus = 'connected',
 }) => {
   return (
     <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-4 mb-5 border-b border-slate-200 dark:border-slate-800 gap-4">
-      {/* Title and Branding with Hanwha People Life Purple Logo */}
+      {/* Title and Branding with Hanwha People Life Purple Logo (Clickable for Admin Password Management) */}
       <div className="flex items-center gap-3.5">
-        <CompanyLogo size="lg" />
+        <CompanyLogo
+          size="lg"
+          onClick={onOpenAdminModal}
+          title="한화피플라이프 로고 (클릭 시 관리자 비밀번호 관리)"
+        />
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 px-2.5 py-0.5 rounded-md">
               한화피플라이프 대전글로리사업단
+            </span>
+            {/* Realtime cloud status indicator */}
+            <span
+              className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border ${
+                cloudSyncStatus === 'connected'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60'
+                  : 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
+              }`}
+              title="Firebase Firestore 중앙 클라우드 실시간 동기화"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              클라우드 실시간 동기화
             </span>
           </div>
           <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
@@ -39,12 +75,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Header Badges & Action Controls */}
       <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
-        {/* Branch affiliation badge */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-purple-800 dark:text-purple-300 rounded-lg hidden sm:flex items-center gap-1.5 shadow-xs">
-          <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-          대전글로리사업단 전용
-        </div>
-
         {/* Data Actions: [리셋], [저장], [저장함] */}
         <div className="flex items-center gap-1.5">
           {/* 리셋 버튼 */}
@@ -114,3 +144,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

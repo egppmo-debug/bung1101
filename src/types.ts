@@ -69,3 +69,14 @@ export interface SavedCalculation {
     multiple: number;
   };
 }
+
+export interface AppLockConfig {
+  isLocked: boolean; // 보안 잠금 활성화 여부
+  accessPin: string; // 소속 FA 사용자 접속 비밀번호 (기본값: '7777')
+  adminPin: string; // 사업단장 관리자 전용 비밀번호 (기본값: '0420')
+  updatedAt: string; // ISO string
+  updatedBy: string; // "사업단장"
+  branchName: string; // "한화피플라이프 대전글로리사업단"
+  lockNotice?: string; // 공지 문구
+}
+

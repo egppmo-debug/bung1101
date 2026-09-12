@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidAppLockConfig(data) {
+      return data.isLocked is bool &&
+        data.accessPin is string &&
+        data.accessPin.size() >= 4 &&
+        data.accessPin.size() <= 16 &&
+        (!('adminPin' in data) || (data.adminPin is string && data.adminPin.size() >= 4 && data.adminPin.size() <= 32)) &&
+        data.branchName is string &&
+        data.branchName.size() <= 100 &&
+        (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50)) &&
+        (!('updatedBy' in data) || (data.updatedBy is string && data.updatedBy.size() <= 50)) &&
+        (!('lockNotice' in data) || (data.lockNotice is string && data.lockNotice.size() <= 200));
+    }
+
+    // 사업단 중앙 클라우드 보안 잠금 및 비밀번호 동기화 규칙
+    match /system_config/{configId} {
+      allow get: if isValidId(configId);
+      allow list: if true;
+      allow create, update: if isValidId(configId) && isValidAppLockConfig(incoming());
+      allow delete: if false;
+    }
+  }
+}

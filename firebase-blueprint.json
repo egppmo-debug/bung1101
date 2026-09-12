@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "AppLockConfig": {
+      "title": "AppLockConfig",
+      "description": "한화피플라이프 대전글로리사업단 중앙 클라우드 보안 비밀번호 및 잠금 설정",
+      "type": "object",
+      "properties": {
+        "isLocked": {
+          "type": "boolean",
+          "description": "보안 잠금 활성화 여부"
+        },
+        "accessPin": {
+          "type": "string",
+          "description": "소속 FA 접속 인증 비밀번호 (4~8자리 숫자 또는 문자)",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "adminPin": {
+          "type": "string",
+          "description": "사업단장 관리자 전용 인증 비밀번호",
+          "minLength": 4,
+          "maxLength": 32
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "마지막 비밀번호 변경 일시 (ISO 형식)"
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "변경자 직책/성명 (예: 사업단장)",
+          "maxLength": 50
+        },
+        "branchName": {
+          "type": "string",
+          "description": "사업단 명칭 (한화피플라이프 대전글로리사업단)",
+          "maxLength": 100
+        },
+        "lockNotice": {
+          "type": "string",
+          "description": "잠금 화면 공지 문구",
+          "maxLength": 200
+        }
+      },
+      "required": ["isLocked", "accessPin", "branchName"]
+    }
+  },
+  "firestore": {
+    "/system_config/{configId}": {
+      "schema": "AppLockConfig",
+      "description": "중앙 클라우드 보안 잠금 및 비밀번호 동기화 문서"
+    }
+  }
+}

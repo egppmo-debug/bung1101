@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   ExecutiveInfo,
   ServicePeriod,
   SalaryHistory,
   ArticlesRegulation,
   SavedCalculation,
+  AppLockConfig,
 } from './types';
 import { calculateExecutiveSeverancePay } from './utils/taxCalculator';
 import {
@@ -13,6 +14,11 @@ import {
   deleteSavedCalculation,
   clearAllSavedCalculations,
 } from './utils/storage';
+import {
+  subscribeToAppLockConfig,
+  testFirestoreConnection,
+  DEFAULT_LOCK_CONFIG,
+} from './lib/firebase';
 import { Header } from './components/Header';
 import { SummaryDashboard } from './components/SummaryDashboard';
 import { TaxRiskAlert } from './components/TaxRiskAlert';
@@ -22,13 +28,15 @@ import { ChecklistGuide } from './components/ChecklistGuide';
 import { TaxGuideModal } from './components/TaxGuideModal';
 import { PrintReportModal } from './components/PrintReportModal';
 import { SavedCalculationsModal } from './components/SavedCalculationsModal';
+import { SecurityLockScreen } from './components/SecurityLockScreen';
+import { AdminPasswordModal } from './components/AdminPasswordModal';
 import { CompanyLogo } from './components/CompanyLogo';
 import { ShieldCheck, Info, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   // Default values configured with Hanwha People Life Daejeon Glory Business Division
   const [executiveInfo, setExecutiveInfo] = useState<ExecutiveInfo>({
-    name: '김대표',
+    name: '이동호',
     position: '대표이사',
     companyName: '한화피플라이프 대전글로리사업단',
   });
@@ -55,6 +63,21 @@ export default function App() {
   const [savedList, setSavedList] = useState<SavedCalculation[]>(() => getSavedCalculations());
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
 
+  // Central Cloud Security Lock State (Firebase Firestore)
+  const [lockConfig, setLockConfig] = useState<AppLockConfig | null>(DEFAULT_LOCK_CONFIG);
+  const [isLockLoading, setIsLockLoading] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockedPin, setUnlockedPin] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('glory_unlocked_pin');
+    } catch {
+      return null;
+    }
+  });
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'connected' | 'connecting' | 'offline'>('connecting');
+  const prevPinRef = useRef<string | null>(null);
+
   // Toast feedback state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<any>(null);
@@ -64,12 +87,92 @@ export default function App() {
     setToastMessage(msg);
     toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
-    }, 3200);
+    }, 3500);
+  };
+
+  // Subscribe to central cloud lock config in real-time (Firebase Firestore onSnapshot)
+  useEffect(() => {
+    // 1. Initial connection check
+    testFirestoreConnection().then((connected) => {
+      if (connected) setCloudSyncStatus('connected');
+    });
+
+    // 2. Real-time broadcast listener
+    const unsubscribe = subscribeToAppLockConfig(
+      (remoteConfig) => {
+        setLockConfig(remoteConfig);
+        setCloudSyncStatus('connected');
+        setIsLockLoading(false);
+
+        // Check if the central PIN was changed by the 사업단장 while this device was open
+        if (prevPinRef.current && prevPinRef.current !== remoteConfig.accessPin) {
+          // Director changed the password on their PC!
+          // Force immediate re-lock across all connected FA smartphones and PCs
+          setIsUnlocked(false);
+          setUnlockedPin(null);
+          try {
+            sessionStorage.removeItem('glory_unlocked_pin');
+          } catch {}
+          showToast('사업단장님께서 보안 비밀번호를 변경하셨습니다. 새 비밀번호로 다시 인증해 주십시오.');
+        } else {
+          // Check existing session
+          if (!remoteConfig.isLocked) {
+            setIsUnlocked(true);
+          } else {
+            const cachedPin = sessionStorage.getItem('glory_unlocked_pin');
+            if (cachedPin && cachedPin === remoteConfig.accessPin) {
+              setIsUnlocked(true);
+              setUnlockedPin(cachedPin);
+            } else {
+              setIsUnlocked(false);
+            }
+          }
+        }
+        prevPinRef.current = remoteConfig.accessPin;
+      },
+      (err) => {
+        console.error('Failed to subscribe to central cloud lock:', err);
+        setCloudSyncStatus('offline');
+        setIsLockLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Unlock with PIN handler
+  const handleUnlockWithPin = (enteredPin: string): boolean => {
+    const targetPin = lockConfig?.accessPin || '7777';
+    if (enteredPin === targetPin) {
+      setIsUnlocked(true);
+      setUnlockedPin(enteredPin);
+      try {
+        sessionStorage.setItem('glory_unlocked_pin', enteredPin);
+      } catch {}
+      showToast('보안 인증 성공: 솔루션이 잠금 해제되었습니다.');
+      return true;
+    }
+    return false;
+  };
+
+  // Manual Lock handler
+  const handleManualLock = () => {
+    if (isUnlocked) {
+      setIsUnlocked(false);
+      setUnlockedPin(null);
+      try {
+        sessionStorage.removeItem('glory_unlocked_pin');
+      } catch {}
+      showToast('보안 잠금이 즉시 활성화되었습니다.');
+    } else {
+      setIsUnlocked(false);
+    }
   };
 
   // Modals state
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
+
 
   // Real-time calculation engine
   const calculationResult = useMemo(() => {
@@ -230,6 +333,11 @@ export default function App() {
         onSave={handleSave}
         onOpenSavedList={() => setIsSavedModalOpen(true)}
         savedCount={savedList.length}
+        isLocked={lockConfig?.isLocked ?? true}
+        isUnlocked={isUnlocked}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
+        onManualLock={handleManualLock}
+        cloudSyncStatus={cloudSyncStatus}
       />
 
       {/* Main High Density 2-Column Grid (5 : 7) */}
@@ -324,6 +432,25 @@ export default function App() {
         onDelete={handleDeleteSaved}
         onClearAll={handleClearAllSaved}
       />
+
+      {/* Central Cloud Director Password Management Modal */}
+      <AdminPasswordModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        lockConfig={lockConfig}
+        onSuccessToast={showToast}
+        onManualLock={handleManualLock}
+      />
+
+      {/* Real-Time Cloud Security Lock Screen Overlay */}
+      {lockConfig?.isLocked && !isUnlocked && (
+        <SecurityLockScreen
+          lockConfig={lockConfig}
+          onUnlock={handleUnlockWithPin}
+          onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          isLoading={isLockLoading}
+        />
+      )}
     </div>
   );
 }
